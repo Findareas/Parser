@@ -1,0 +1,41 @@
+# coding: utf-8
+
+import numpy as np
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+import re
+
+url = 'https://en.wikipedia.org/wiki/ISO_4217'
+page = requests.get(url)
+soup = BeautifulSoup(page.text, 'html.parser')
+
+table = soup.find('table',{'class':'wikitable sortable'})
+
+currency_codes = table.findAll('td')[::5]
+number_codes = table.findAll('td')[1::5]
+titles = table.findAll('td')[3::5]
+
+clean_currency_codes = []
+clean_number_codes = []
+clean_titles = []
+
+for currency_code,number_code,title in zip(currency_codes,number_codes,titles):
+    clean_currency_code = str(currency_code).split('>')[1].split('<')[0]
+    clean_currency_codes.append(clean_currency_code)
+
+    clean_number_code = str(number_code).split('>')[1].split('<')[0]
+    clean_number_codes.append(clean_number_code)
+
+    if 'title' in str(title):
+        refined_string = re.findall('title="(.+?)"',str(title))
+        clean_titles.append(refined_string[-1])
+    else:
+        refined_string = str(title).split('>')[1].split('<')[0]
+        clean_titles.append(refined_string)
+
+wiki_table = pd.DataFrame({'num_code':clean_number_codes,'currency_code':clean_currency_codes,'title':clean_titles},
+             columns=['num_code','currency_code','title'])
+wiki_table.head()
+
+wiki_table.to_csv('модули/currency_code_wiki.csv', index=False)
